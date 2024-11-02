@@ -1,0 +1,15 @@
+{
+  /* Paths */
+  "paths": {
+    "@client*": ["./client/src/*"],
+    "@server*": ["./server/src*"]
+  },
+  /* Compiler Options */
+  "compilerOptions": {
+    "baseUrl": "./",
+    "paths": {
+      "@client*": ["./client/src/*"],
+      "@server*": ["./server/src*"]
+    }
+  }
+}
