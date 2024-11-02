@@ -6,19 +6,22 @@
   "type": "module",
   "scripts": {
     "dev": "bun run server:dev & bun run client:dev",
-    "client:dev": "bunx --bun vite --config client/vite.config.ts",
-    "client:build": "bunx --bun vite build --config client/vite.config.ts",
-    "client:preview": "bunx --bun vite preview --config client/vite.config.ts",
+    "client:dev": "bunx --bun vite",
+    "client:build": "bunx --bun vite build",
+    "client:preview": "bunx --bun vite preview",
     "server:dev": "bun run --hot ./server/index.ts"
   },
   "devDependencies": {
-    "@types/bun": "latest",
     "@biomejs/biome": "^1.9.4",
+    "@types/bun": "latest",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react-swc": "^3.7.1",
-    "lint-staged": "^15.2.10",
+    "autoprefixer": "^10.4.20",
     "globals": "^15.11.0",
+    "lint-staged": "^15.2.10",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
     "vite": "^5.4.10"
   },
   "peerDependencies": {

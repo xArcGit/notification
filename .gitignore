@@ -119,6 +119,7 @@ out
 
 .nuxt
 dist
+build
 
 # Gatsby files
 
@@ -173,3 +174,6 @@ dist
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# Database
+db.sqlite

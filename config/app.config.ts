@@ -13,6 +13,6 @@ export const config = {
 	},
 	log: {
 		level: env.LOG_LEVEL,
-		color: env.LOG_USE_COLORS,
+		color: env.LOG_USE_COLOR,
 	},
 };

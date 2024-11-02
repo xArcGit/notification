@@ -1,34 +1,20 @@
-import reactLogo from "./assets/react.svg";
-import { useState } from "react";
-import viteLogo from "/vite.svg";
-
 function App() {
-  const [count, setCount] = useState(0);
-
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank" rel="noreferrer">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank" rel="noreferrer">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button type="button" onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  );
+	return (
+		<div className="flex items-center justify-center h-screen bg-gray-100">
+			<div className="bg-white shadow-lg rounded-lg p-6 max-w-sm">
+				<h2 className="text-2xl font-bold mb-4">Centered Box</h2>
+				<p className="text-gray-700">
+					This is a simple box centered in the middle of the screen.
+				</p>
+				<button
+					type="button"
+					className="mt-4 px-4 py-2 text-white bg-blue-500 rounded hover:bg-blue-600"
+				>
+					Click Me!
+				</button>
+			</div>
+		</div>
+	);
 }
 
 export default App;
