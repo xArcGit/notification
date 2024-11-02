@@ -1,15 +1,14 @@
 {
-  /* Paths */
-  "paths": {
-    "@client*": ["./client/src/*"],
-    "@server*": ["./server/src*"]
-  },
-  /* Compiler Options */
   "compilerOptions": {
+    "strict": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx",
     "baseUrl": "./",
     "paths": {
       "@client*": ["./client/src/*"],
-      "@server*": ["./server/src*"]
+      "@server*": ["./server/src*"],
+      "@config*": ["./config/*"],
+      "@utils*": ["./utils/*"]
     }
   }
 }
