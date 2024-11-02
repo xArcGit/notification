@@ -9,7 +9,6 @@ export const config = {
 		},
 	},
 	database: {
-		path: env.DATABASE_PATH,
 		name: env.DATABASE_NAME,
 	},
 	log: {

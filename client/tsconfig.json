@@ -1,4 +1,11 @@
 {
+  "compilerOptions": {
+    "paths": {
+      "@server/*": ["../server/*"],
+      "@config/*": ["../config/*"],
+      "@utils/*": ["../utils/*"]
+    }
+  },
   "files": [],
   "references": [
     { "path": "./tsconfig.app.json" },
