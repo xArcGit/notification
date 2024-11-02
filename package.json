@@ -5,10 +5,11 @@
   "license": "XAG",
   "type": "module",
   "scripts": {
+    "dev": "bun run server:dev & bun run client:dev",
     "client:dev": "bunx --bun vite --config client/vite.config.ts",
     "client:build": "bunx --bun vite build --config client/vite.config.ts",
     "client:preview": "bunx --bun vite preview --config client/vite.config.ts",
-    "server:dev": "bun run --hot ./server/src/index.ts"
+    "server:dev": "bun run --hot ./server/index.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
@@ -24,6 +25,7 @@
     "typescript": "^5.6.3"
   },
   "dependencies": {
+    "@hono/sentry": "^1.2.0",
     "@hono/zod-validator": "^0.4.1",
     "hono": "^4.6.8",
     "pino": "^9.5.0",
