@@ -10,7 +10,7 @@ export default component$(() => {
 				image="https://via.placeholder.com/300x200"
 				title="Sample Title"
 				description="This is a sample description for the card."
-				buttonText="Click Me"
+				cookie="test"
 			/>
 		</>
 	);

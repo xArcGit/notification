@@ -4,11 +4,10 @@
   "description": "Notification manager",
   "license": "XAG",
   "type": "module",
+  "private": true,
   "scripts": {
     "dev": "bun run server:dev & bun run client:dev",
-    "client:dev": "bunx --bun vite",
-    "client:build": "bunx --bun vite build",
-    "client:preview": "bunx --bun vite preview",
+    "client:dev": "bunx --bun vite --mode ssr",
     "server:dev": "bun run --hot ./server/index.ts"
   },
   "devDependencies": {
