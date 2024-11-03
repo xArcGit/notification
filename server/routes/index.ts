@@ -3,6 +3,7 @@ import db from '../config/databases';
 import { httpStatus } from '@utils/http-status';
 import { logger } from '@utils/logger';
 import { restrictRunInterval } from '../middlewares/refresh';
+import { scrapeScheduleNotices } from '../api/ipu';
 import { sendResponse } from '../utils/response';
 import { validateRequest } from '../middlewares/validater';
 
@@ -60,7 +61,7 @@ route.get('/search', validateRequest, async c => {
 
 route.get('/refresh', restrictRunInterval, async c => {
 	try {
-		// Your refresh logic goes here, e.g., updating data or clearing cache
+		scrapeScheduleNotices();
 		return sendResponse(
 			c,
 			httpStatus.OK,

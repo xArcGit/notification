@@ -9,7 +9,8 @@ db.run(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT,
     description TEXT,
-    urls TEXT,
+    view_link TEXT,
+    download_link TEXT,
     tags TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
