@@ -2,16 +2,13 @@ import type { Context } from 'hono';
 import { httpStatusMessages } from '@utils/http-status';
 
 export const sendResponse = (
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	c: Context | any,
 	status: number,
-	// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 	data?: Record<string, any> | string | null,
 	message?: string,
 ) => {
 	interface Response {
 		message: string;
-		// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 		data?: Record<string, any> | string | null;
 		timestamp: string;
 	}

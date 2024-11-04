@@ -8,6 +8,7 @@ import { ZodError } from 'zod';
 import { config } from '@config/app.config';
 import { generateZodErrorMessage } from '../utils/zod';
 import { getSentry } from '@hono/sentry';
+import { sendResponse } from '../utils/response';
 
 const genericJSONErrMsg = 'Unexpected end of JSON input';
 
@@ -50,10 +51,13 @@ export const errorHandler: ErrorHandler = async (err, c) => {
 		error.message = httpStatusMessages[httpStatus.INTERNAL_SERVER_ERROR];
 	}
 	const response = {
-		code: error.statusCode,
-		message: error.message,
 		...(env === 'development' ? { stack: err.stack } : {}),
 	};
 	c.error = undefined;
-	return c.json(response, error.statusCode as StatusCode);
+	return sendResponse(
+		c,
+		error.statusCode as StatusCode,
+		response,
+		error.message,
+	);
 };

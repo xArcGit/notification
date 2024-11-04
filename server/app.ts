@@ -16,7 +16,7 @@ app.use(
 	logger((message, ...rest) => customLogger.info(message, ...rest)),
 );
 
-const apiRoute = app.route('/', route);
+app.route('/api', route);
 
 app.notFound(() => {
 	throw new ApiError(
@@ -28,4 +28,4 @@ app.notFound(() => {
 app.onError(errorHandler);
 
 export default app;
-export type AppType = typeof apiRoute;
+export type AppType = typeof app;
