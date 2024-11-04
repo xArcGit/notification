@@ -1,5 +1,9 @@
 import { z } from 'zod';
 
-export const requestSchema = z.object({
-	tags: z.array(z.string()),
+export const getRequestSchema = z.object({
+	filterTags: z.array(z.string()),
+});
+
+export const refreshRequestSchema = z.object({
+	forceRefresh: z.boolean(),
 });

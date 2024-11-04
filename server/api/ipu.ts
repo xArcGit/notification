@@ -1,8 +1,8 @@
 import puppeteer, { type Browser, type Page } from 'puppeteer';
 
 import { insertOrUpdateNotifications } from './index';
+import { logger } from '@utils/logger';
 
-// Define an interface for the scraped data
 interface ScheduleNotice {
 	title: string;
 	year: string;
@@ -10,25 +10,13 @@ interface ScheduleNotice {
 	downloadLink: string;
 }
 
-// Function to scrape data from the website
 async function scrapeScheduleNotices(): Promise<ScheduleNotice[]> {
-	// Launch Puppeteer
 	const browser: Browser = await puppeteer.launch({ headless: true });
 	const page: Page = await browser.newPage();
 
-	// Navigate to the URL
 	await page.goto('https://ipu.admissions.nic.in/schedule-notices/');
 
-	// Extract data
 	const data: ScheduleNotice[] = await page.evaluate(() => {
-		// Define an interface inside the evaluate function for type safety
-		interface ScheduleNotice {
-			title: string;
-			year: string;
-			viewLink: string;
-			downloadLink: string;
-		}
-
 		const rows = document.querySelectorAll('tr');
 		const extractedData: ScheduleNotice[] = [];
 
@@ -56,24 +44,22 @@ async function scrapeScheduleNotices(): Promise<ScheduleNotice[]> {
 		return extractedData;
 	});
 
-	// Close the browser
 	await browser.close();
 
 	return data;
 }
 
-// Main function to perform scraping and update the database
 const updateScheduleNotices = async (): Promise<void> => {
 	try {
 		const notices = await scrapeScheduleNotices();
 		const resultMessage = insertOrUpdateNotifications(notices);
-		console.log(resultMessage);
+		logger.info(resultMessage);
 	} catch (error) {
-		console.error('Error updating schedule notices:', error);
+		logger.error('Error updating schedule notices:', error);
 	}
 };
 
-// Run the update process
-updateScheduleNotices();
+// Remove the automatic invocation of updateScheduleNotices
+// updateScheduleNotices();
 
-export { scrapeScheduleNotices };
+export { scrapeScheduleNotices, updateScheduleNotices };
