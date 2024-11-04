@@ -6,14 +6,20 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun run server:dev & bun run client:dev",
-    "client:dev": "bunx --bun vite --mode ssr",
+    "dev": "bun server:dev & bun client:dev",
+    "client:dev": "cd client && bun --bun vite",
+    "client:build": "bun --bun vue-tsc -b && vite build",
+    "client:preview": "bun --bun vite preview",
     "server:dev": "bun run --hot ./server/index.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@types/bun": "latest",
-    "lint-staged": "^15.2.10"
+    "@types/vue": "^2.0.0",
+    "@vitejs/plugin-vue": "^5.1.4",
+    "lint-staged": "^15.2.10",
+    "vite": "^5.4.10",
+    "vue-tsc": "^2.1.8"
   },
   "peerDependencies": {
     "typescript": "^5.6.3"
@@ -21,15 +27,19 @@
   "dependencies": {
     "@hono/sentry": "^1.2.0",
     "@hono/zod-validator": "^0.4.1",
-    "hono": "^4.6.8",
+    "hono": "^4.6.9",
     "pino": "^9.5.0",
     "pino-pretty": "^11.3.0",
-    "puppeteer": "^23.6.1",
+    "puppeteer": "^23.7.0",
     "zod": "^3.23.8",
-    "zod-validation-error": "^3.4.0"
+    "zod-validation-error": "^3.4.0",
+    "vue": "^3.5.12"
   },
   "lint-staged": {
     "*.{ts,js}": "bunx biome check --apply-unsafe",
     "**/*": "bunx biome format --write --files-ignore-unknown=true"
-  }
+  },
+  "trustedDependencies": [
+    "@biomejs/biome"
+  ]
 }
