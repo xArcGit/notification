@@ -16,7 +16,7 @@ app.use(
 	logger((message, ...rest) => customLogger.info(message, ...rest)),
 );
 
-app.route('/api', route);
+app.route('/notifications', route);
 
 app.notFound(() => {
 	throw new ApiError(

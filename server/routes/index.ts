@@ -26,15 +26,14 @@ interface FetchNotificationsResult {
 	message?: string;
 }
 
-// Utility function to fetch notifications from the database
+// Utility function to fetch notifications from the database with pagination
 const fetchNotifications = async (
 	queryText: string,
 	params: any[],
 ): Promise<FetchNotificationsResult> => {
 	try {
 		const statement = db.prepare(queryText);
-		const rows = statement.all(...params) as Notification[]; // Using `prepare` and `all` for proper query execution
-
+		const rows = statement.all(...params) as Notification[];
 		return { status: httpStatus.OK, data: rows };
 	} catch (error) {
 		logger.error('Database error:', error);
@@ -48,32 +47,55 @@ const fetchNotifications = async (
 
 const route = new Hono();
 
-// GET /get route to retrieve notifications based on tags
-route.post('/get', validateGetRequest, async c => {
-	try {
-		const { filterTags } = c.req.valid('json') as { filterTags: string[] };
+// Middleware for parsing request body
+// route.use('*', async (c, next) => {
+// 	try {
+// 		await c.req.parseBody();
+// 		await next();
+// 	} catch (error) {
+// 		logger.error('Error parsing request body:', error);
+// 		return sendResponse(
+// 			c,
+// 			httpStatus.BAD_REQUEST,
+// 			null,
+// 			'Invalid request body',
+// 		);
+// 	}
+// });
 
-		if (!filterTags || filterTags.length === 0) {
+// POST /notifications: Retrieve notifications based on tags with pagination
+route.post('/', validateGetRequest, async c => {
+	try {
+		const { tags, limit, offset } = c.req.valid('json') as {
+			tags: string[];
+			limit: number;
+			offset: number;
+		};
+
+		if (!tags || tags.length === 0) {
 			return sendResponse(
 				c,
 				httpStatus.BAD_REQUEST,
 				null,
-				'filterTags must be a non-empty array of strings',
+				'tags must be a non-empty array of strings',
 			);
 		}
 
-		const tagsString = `%${filterTags.join(',')}%`;
+		const tagsPattern = `%${tags.join(',')}%`;
 		const queryText = `
-      SELECT * FROM notifications
-      WHERE tags LIKE ?;
-    `;
+			SELECT * FROM notifications
+			WHERE tags LIKE ?
+			LIMIT ? OFFSET ?;
+		`;
 
 		const { status, data, message } = await fetchNotifications(queryText, [
-			tagsString,
+			tagsPattern,
+			limit,
+			offset,
 		]);
 		return sendResponse(c, status, data, message);
 	} catch (error) {
-		logger.error('Error processing /get request:', error);
+		logger.error('Error processing / request:', error);
 		return sendResponse(
 			c,
 			httpStatus.INTERNAL_SERVER_ERROR,
@@ -83,24 +105,39 @@ route.post('/get', validateGetRequest, async c => {
 	}
 });
 
-// GET /search route to search notifications by tags and query
+// POST /notifications/search: Search notifications by tags and query with pagination
 route.post('/search', validateGetRequest, async c => {
 	try {
-		const { filterTags } = c.req.valid('json') as { filterTags: string[] };
-		const query = c.req.query('query') || ''; // Fetching query parameter
+		const { tags, limit, offset } = c.req.valid('json') as {
+			tags: string[];
+			limit: number;
+			offset: number;
+		};
+		const searchTerm = c.req.query('query') || ''; // Fetching query parameter
 
-		const tagsString = `%${filterTags.join(',')}%`;
-		const searchQuery = `%${query}%`;
+		if (!tags || tags.length === 0) {
+			return sendResponse(
+				c,
+				httpStatus.BAD_REQUEST,
+				null,
+				'tags must be a non-empty array of strings',
+			);
+		}
 
+		const tagsPattern = `%${tags.join(',')}%`;
+		const searchPattern = `%${searchTerm}%`;
 		const queryText = `
 			SELECT * FROM notifications
-			WHERE tags LIKE ? AND (title LIKE ? OR description LIKE ?);
+			WHERE tags LIKE ? AND (title LIKE ? OR description LIKE ?)
+			LIMIT ? OFFSET ?;
 		`;
 
 		const { status, data, message } = await fetchNotifications(queryText, [
-			tagsString,
-			searchQuery,
-			searchQuery,
+			tagsPattern,
+			searchPattern,
+			searchPattern,
+			limit,
+			offset,
 		]);
 		return sendResponse(c, status, data, message);
 	} catch (error) {
@@ -114,12 +151,12 @@ route.post('/search', validateGetRequest, async c => {
 	}
 });
 
-// POST /refresh route to trigger data refresh
+// POST /notifications/refresh: Trigger data refresh
 route.post('/refresh', restrictRunInterval, validateRefreshRequest, async c => {
 	try {
-		const { forceRefresh } = c.req.valid('json') as { forceRefresh: boolean };
+		const { refresh } = c.req.valid('json') as { refresh: boolean };
 
-		if (forceRefresh) {
+		if (refresh) {
 			await updateScheduleNotices();
 			return sendResponse(
 				c,
@@ -133,7 +170,7 @@ route.post('/refresh', restrictRunInterval, validateRefreshRequest, async c => {
 			c,
 			httpStatus.BAD_REQUEST,
 			null,
-			'Refresh not triggered. Set forceRefresh to true to proceed.',
+			'Refresh not triggered. Set force Refresh to true to proceed.',
 		);
 	} catch (error) {
 		logger.error('Error processing /refresh request:', error);
