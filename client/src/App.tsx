@@ -1,5 +1,4 @@
-import './App.css';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import type { AppType } from '../../server/app';
 import { hc, type InferRequestType, type InferResponseType } from 'hono/client';
 
@@ -17,9 +16,6 @@ export default function App() {
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [page, setPage] = useState(1); // Start at page 1
-
-	// Ref to track the loader element
-	const loaderRef = useRef<HTMLDivElement | null>(null);
 
 	// Fetch data function
 	const fetchData = useCallback(async () => {
@@ -61,30 +57,15 @@ export default function App() {
 		}
 	}, [page, $post, loading]);
 
-	// IntersectionObserver to trigger data fetch on scroll
-	useEffect(() => {
-		const observer = new IntersectionObserver(
-			entries => {
-				if (entries[0].isIntersecting && !loading) {
-					setPage(prevPage => prevPage + 1); // Increment page to fetch the next set
-				}
-			},
-			{ threshold: 1.0 },
-		);
-
-		const loaderElement = loaderRef.current;
-		if (loaderElement) observer.observe(loaderElement);
-
-		// Cleanup observer on unmount
-		return () => {
-			if (loaderElement) observer.unobserve(loaderElement);
-		};
-	}, [loading]);
-
-	// Fetch data on initial mount and when the page state changes
+	// Fetch data on initial mount
 	useEffect(() => {
 		fetchData();
 	}, [fetchData]);
+
+	// Handle "View More" button click
+	const handleViewMore = () => {
+		setPage(prevPage => prevPage + 1); // Increment page to fetch the next set
+	};
 
 	// Render the UI
 	return (
@@ -94,12 +75,25 @@ export default function App() {
 			{/* Show error message if any */}
 			{loading && <p>Loading...</p>} {/* Loading state indicator */}
 			{data.length > 0 ? (
-				<pre>{JSON.stringify(data, null, 2)}</pre> // Display fetched data
+				<div>
+					{data.map(item => (
+						<div key={item.id}>
+							<h2>{item.title}</h2> <p>{item.description}</p>{' '}
+							<a href={item.view_link}>View</a>{' '}
+						</div>
+					))}
+				</div>
 			) : (
 				!loading && <p>No data available</p> // Message when no data is available
 			)}
-			{/* Loader element to trigger the IntersectionObserver */}
-			<div ref={loaderRef} style={{ height: '20px', margin: '10px 0' }} />
+			{/* View More button */}
+			<div style={{ margin: '20px 0' }}>
+				{!loading && data.length > 0 && (
+					<button type="button" onClick={handleViewMore}>
+						View More
+					</button>
+				)}
+			</div>
 		</div>
 	);
 }

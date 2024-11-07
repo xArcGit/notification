@@ -28,14 +28,15 @@
   "dependencies": {
     "@hono/sentry": "^1.2.0",
     "@hono/zod-validator": "^0.4.1",
+    "bulma": "^1.0.2",
     "hono": "^4.6.9",
     "pino": "^9.5.0",
     "pino-pretty": "^11.3.0",
     "puppeteer": "^23.7.0",
-    "zod": "^3.23.8",
-    "zod-validation-error": "^3.4.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "zod": "^3.23.8",
+    "zod-validation-error": "^3.4.0"
   },
   "lint-staged": {
     "*.{ts,js}": "bunx biome check --apply-unsafe",
