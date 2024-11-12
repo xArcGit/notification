@@ -174,6 +174,3 @@ build
 
 # Finder (MacOS) folder config
 .DS_Store
-
-# Database
-db.sqlite
