@@ -7,7 +7,8 @@
     "paths": {
       "@server/*": ["./server/*"],
       "@config/*": ["./config/*"],
-      "@utils/*": ["./utils/*"]
+      "@utils/*": ["./utils/*"],
+      "@client/*": ["./client/*"]
     }
   }
 }

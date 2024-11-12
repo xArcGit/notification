@@ -2,7 +2,6 @@ import {
 	validateGetRequest,
 	validateRefreshRequest,
 } from '../middlewares/validater';
-
 import { Hono } from 'hono';
 import db from '../config/databases';
 import { httpStatus } from '@utils/http-status';
@@ -45,23 +44,39 @@ const fetchNotifications = async (
 	}
 };
 
-const route = new Hono();
+// Utility function to handle invalid tag input
+const validateTags = (tags: string[]): boolean => {
+	return (
+		Array.isArray(tags) &&
+		tags.length > 0 &&
+		tags.every(tag => typeof tag === 'string')
+	);
+};
 
-// Middleware for parsing request body
-// route.use('*', async (c, next) => {
-// 	try {
-// 		await c.req.parseBody();
-// 		await next();
-// 	} catch (error) {
-// 		logger.error('Error parsing request body:', error);
-// 		return sendResponse(
-// 			c,
-// 			httpStatus.BAD_REQUEST,
-// 			null,
-// 			'Invalid request body',
-// 		);
-// 	}
-// });
+// Utility function to construct the WHERE clause for search queries
+const constructSearchQuery = (
+	tags: string[],
+	searchTerm: string,
+	limit: number,
+	offset: number,
+): { queryText: string; params: any[] } => {
+	const tagsPattern = `%${tags.join(',')}%`;
+	let queryText = 'SELECT * FROM notifications WHERE tags LIKE ?';
+	const params: any[] = [tagsPattern];
+
+	if (searchTerm) {
+		const searchPattern = `%${searchTerm}%`;
+		queryText += ' AND title LIKE ?';
+		params.push(searchPattern);
+	}
+
+	queryText += ' LIMIT ? OFFSET ?';
+	params.push(limit, offset);
+
+	return { queryText, params };
+};
+
+const route = new Hono();
 
 // POST /notifications: Retrieve notifications based on tags with pagination
 route.post('/', validateGetRequest, async c => {
@@ -72,27 +87,31 @@ route.post('/', validateGetRequest, async c => {
 			offset: number;
 		};
 
-		if (!tags || tags.length === 0) {
+		// Validate tags
+		if (!validateTags(tags)) {
 			return sendResponse(
 				c,
 				httpStatus.BAD_REQUEST,
 				null,
-				'tags must be a non-empty array of strings',
+				'Tags must be a non-empty array of strings',
 			);
 		}
 
-		const tagsPattern = `%${tags.join(',')}%`;
-		const queryText = `
-			SELECT * FROM notifications
-			WHERE tags LIKE ?
-			LIMIT ? OFFSET ?;
-		`;
+		// Default limit if not provided or invalid
+		const finalLimit = limit > 0 ? limit : 10;
+		const finalOffset = offset >= 0 ? offset : 0;
 
-		const { status, data, message } = await fetchNotifications(queryText, [
-			tagsPattern,
-			limit,
-			offset,
-		]);
+		const { queryText, params } = constructSearchQuery(
+			tags,
+			'',
+			finalLimit,
+			finalOffset,
+		);
+
+		const { status, data, message } = await fetchNotifications(
+			queryText,
+			params,
+		);
 		return sendResponse(c, status, data, message);
 	} catch (error) {
 		logger.error('Error processing / request:', error);
@@ -115,30 +134,32 @@ route.post('/search', validateGetRequest, async c => {
 		};
 		const searchTerm = c.req.query('query') || ''; // Fetching query parameter
 
-		if (!tags || tags.length === 0) {
+		// Validate tags
+		if (!validateTags(tags)) {
 			return sendResponse(
 				c,
 				httpStatus.BAD_REQUEST,
 				null,
-				'tags must be a non-empty array of strings',
+				'Tags must be a non-empty array of strings',
 			);
 		}
 
-		const tagsPattern = `%${tags.join(',')}%`;
-		const searchPattern = `%${searchTerm}%`;
-		const queryText = `
-			SELECT * FROM notifications
-			WHERE tags LIKE ? AND (title LIKE ? OR description LIKE ?)
-			LIMIT ? OFFSET ?;
-		`;
+		// Default limit if not provided or invalid
+		const finalLimit = limit > 0 ? limit : 10;
+		const finalOffset = offset >= 0 ? offset : 0;
 
-		const { status, data, message } = await fetchNotifications(queryText, [
-			tagsPattern,
-			searchPattern,
-			searchPattern,
-			limit,
-			offset,
-		]);
+		// Construct the search query based on tags and search term
+		const { queryText, params } = constructSearchQuery(
+			tags,
+			searchTerm,
+			finalLimit,
+			finalOffset,
+		);
+
+		const { status, data, message } = await fetchNotifications(
+			queryText,
+			params,
+		);
 		return sendResponse(c, status, data, message);
 	} catch (error) {
 		logger.error('Error processing /search request:', error);

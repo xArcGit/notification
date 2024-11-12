@@ -10,6 +10,7 @@
     "client:dev": "cd client && bun --bun vite",
     "client:build": "bun --bun vite build",
     "client:preview": "bun --bun vite preview",
+    "client:check": "svelte-check --tsconfig ./client/tsconfig.json && tsc -p ./client/tsconfig.node.json",
     "server:dev": "bun run --hot ./server/index.ts"
   },
   "devDependencies": {
@@ -19,8 +20,12 @@
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",
     "lint-staged": "^15.2.10",
-    "vite": "^5.4.10",
-    "globals": "^15.11.0"
+    "@sveltejs/vite-plugin-svelte": "^4.0.0",
+    "@tsconfig/svelte": "^5.0.4",
+    "svelte": "^5.1.3",
+    "svelte-check": "^4.0.5",
+    "tslib": "^2.8.0",
+    "vite": "^5.4.10"
   },
   "peerDependencies": {
     "typescript": "^5.6.3"
@@ -33,8 +38,6 @@
     "pino": "^9.5.0",
     "pino-pretty": "^11.3.0",
     "puppeteer": "^23.7.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
     "zod": "^3.23.8",
     "zod-validation-error": "^3.4.0"
   },

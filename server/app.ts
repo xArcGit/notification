@@ -2,6 +2,7 @@ import { httpStatus, httpStatusMessages } from '@utils/http-status';
 
 import ApiError from './utils/api-error';
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 import { logger as customLogger } from '@utils/logger';
 import { errorHandler } from './middlewares/error-handler';
 import { logger } from 'hono/logger';
@@ -10,6 +11,7 @@ import { sentry } from '@hono/sentry';
 
 const app = new Hono();
 app.use('*', sentry());
+app.use('*', cors());
 
 app.use(
 	'*',
