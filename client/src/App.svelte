@@ -1,10 +1,8 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
-  import { writable } from 'svelte/store';
+  import { get, writable } from 'svelte/store';
+  import { onMount } from 'svelte';
+  import type { AppType } from "../../server/app";
   import { hc, type InferRequestType, type InferResponseType } from 'hono/client';
-
-  // Browser check (no need for SvelteKit-specific import)
-  const browser = typeof window !== 'undefined';
 
   // Initialize the RPC client for API calls
   const client = hc<AppType>('http://localhost:3001');
@@ -16,28 +14,28 @@
   type PostRequest = InferRequestType<typeof postRequest>;
   type PostResponse = InferResponseType<typeof postRequest>;
   type SearchRequest = {
-    query: string;
     tags: string[];
     limit: number;
     offset: number;
+    search: string;
   };
   type SearchResponse = PostResponse[];
 
   // Reactive Variables
   let data: PostResponse[] = [];
-  let loading = writable(false);
+  const loading = writable(false); // Store for loading state
   let error: string | null = null;
-  let page = 1;
+  let page = 1; // Current page for pagination
   let searchQuery = '';
-  let searching = writable(false);
+  const searching = writable(false); // Store for search state
   let debounceTimer: NodeJS.Timeout | null = null;
   const tags = ['ipu', 'iitm', 'iintm']; // Default tags for search/filter
 
   // Load selected tags from cookies (if any)
-  let selectedTags = writable(getSavedTags() || tags);
+  const selectedTags = writable(getSavedTags() || tags);
 
   function getSavedTags() {
-    if (browser) {
+    if (typeof window !== 'undefined') {
       const savedTags = localStorage.getItem('selectedTags');
       return savedTags ? JSON.parse(savedTags) : tags;
     }
@@ -45,24 +43,27 @@
   }
 
   function saveTags(tags: string[]) {
-    if (browser) {
+    if (typeof window !== 'undefined') {
       localStorage.setItem('selectedTags', JSON.stringify(tags));
     }
   }
 
-  // Function to fetch data (general data and search results)
+  // Fetch data based on whether it's a search or not
   async function fetchData(isSearch = false) {
-    if ($loading || $searching) return;
+    const $loading = get(loading);
+    const $searching = get(searching);
 
-    $loading = true;
+    if ($loading || $searching) return; // Prevent fetching while loading or searching
+
+    loading.set(true);
     error = null;
 
     try {
       const limit = 10;
       const offset = (page - 1) * limit;
       const requestData = isSearch
-        ? { query: searchQuery, tags: $selectedTags, limit, offset }
-        : { tags: $selectedTags, limit, offset };
+        ? { search: searchQuery, tags: get(selectedTags), limit, offset }
+        : { tags: get(selectedTags), limit, offset };
 
       const res = await (isSearch ? searchRequest : postRequest)({
         json: requestData as PostRequest | SearchRequest,
@@ -79,19 +80,23 @@
       } else if (result && Array.isArray(result.data)) {
         data = isSearch ? result.data : [...data, ...result.data];
       } else {
-        throw new Error(
-          'Unexpected response format: Expected an array or object with data array'
-        );
+        throw new Error('Unexpected response format');
       }
+
+      // Scroll to the top on fresh search
+      if (isSearch) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
     } catch (err) {
       error = err instanceof Error ? err.message : 'Unknown error';
       console.error(error);
     } finally {
-      $loading = false;
+      loading.set(false);
     }
   }
 
-  // Function to search data with debounce
+  // Handle input search with debounce
   function handleSearchInput() {
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
@@ -101,9 +106,29 @@
     }, 500); // 500ms debounce delay
   }
 
+  // Handle tag changes and save to localStorage
+  function handleTagChange(tag: string) {
+    let newTags = [...get(selectedTags)];
+
+    // Prevent unselecting the last tag
+    if (newTags.length === 1 && newTags.includes(tag)) return;
+
+    if (newTags.includes(tag)) {
+      newTags = newTags.filter(t => t !== tag);
+    } else {
+      newTags.push(tag);
+    }
+
+    selectedTags.set(newTags);
+    saveTags(newTags);
+    data = []; // Reset data when tags change
+    page = 1;
+    fetchData(true); // Refetch with updated tags
+  }
+
   // Function to refresh data
   async function refreshData() {
-    $loading = true;
+    loading.set(true);
     try {
       const res = await refreshRequest({
         json: { refresh: true },
@@ -117,34 +142,37 @@
       error = err instanceof Error ? err.message : 'Unknown error';
       console.error(error);
     } finally {
-      $loading = false;
+      loading.set(false);
     }
   }
 
-  // Handle initial load
+  // Detect scroll and trigger loading when reaching bottom
+  let isFetching = false;
+
   onMount(() => {
     fetchData();
+
+    // Listen for scroll events
+    window.addEventListener('scroll', handleScroll);
   });
 
-  // Handle tag changes and save to localStorage
-  function handleTagChange(tag: string) {
-    let newTags = [...$selectedTags];
-    if (newTags.includes(tag)) {
-      newTags = newTags.filter(t => t !== tag);
-    } else {
-      newTags.push(tag);
+  function handleScroll() {
+    const scrollPosition = window.scrollY + window.innerHeight;
+    const bottomPosition = document.documentElement.scrollHeight;
+
+    // Check if we're at the bottom of the page and if we're not already fetching
+    if (scrollPosition >= bottomPosition - 10 && !isFetching) {
+      fetchNextPage();
     }
-    selectedTags.set(newTags);
-    saveTags(newTags);
-    data = []; // Reset data when tags change
-    page = 1;
-    fetchData(true); // Refetch with updated tags
   }
 
-  // Handle manual page refresh (on bottom button)
-  function handleManualRefresh() {
-    page = 1;
-    fetchData();
+  // Fetch next page
+  async function fetchNextPage() {
+    if (isFetching) return; // Avoid multiple fetches at once
+    isFetching = true;
+    page++; // Increment page number
+    await fetchData(); // Fetch more data
+    isFetching = false;
   }
 </script>
 
@@ -163,7 +191,7 @@
   <div class="tags-filter">
     {#each tags as tag}
       <button
-        class:selected={$selectedTags.includes(tag)}
+        class:selected={get(selectedTags).includes(tag)}
         on:click={() => handleTagChange(tag)}
       >
         {tag}
@@ -183,7 +211,7 @@
     {#if data.length > 0}
       {#each data as item}
         <div class="data-card">
-          <h2><span class="icon">📌</span> {item.title}</h2>
+          <h2><span class="icon">{item.title}</h2>
           <p>{item.description}</p>
           <a class="view-link" href={item.view_link} target="_blank" rel="noopener noreferrer">
             <span class="icon">🔗</span> View
@@ -195,153 +223,186 @@
     {/if}
   </div>
 
-  {#if !loading && data.length > 0}
-    <div class="view-more-container">
-      <button class="view-more-button" on:click={handleManualRefresh}>Refresh</button>
-    </div>
-  {/if}
-
   <!-- Refresh Button on Top Right -->
-  <div class="refresh-button" on:click={refreshData}>🔄 Refresh</div>
+  <button
+  class="refresh-button"
+  on:click={refreshData}
+  aria-label="Refresh Data"
+>
+  <i class="fas fa-sync-alt"></i> <!-- Font Awesome refresh icon -->
+</button>
+
 </main>
 
 <style>
-  /* General Styles */
-  .app {
-    font-family: 'Arial', sans-serif;
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 20px;
-    color: #333;
-  }
+/* General Styles */
+.app {
+  font-family: 'Arial', sans-serif;
+  max-width: 1200px; /* Increased width for larger screen real estate */
+  margin: 0 auto;
+  padding: 30px;
+  color: #333;
+  position: relative;
+  background-color: #fafafa;
+}
 
-  h1 {
-    text-align: center;
-    color: #4a4a4a;
-    margin-bottom: 20px;
-  }
+h1 {
+  text-align: center;
+  color: #4a4a4a;
+  margin-bottom: 30px;
+  font-size: 2em;
+  font-weight: 600;
+}
 
-  .error {
-    color: #d9534f;
-    text-align: center;
-    font-size: 1.2em;
-  }
+.error {
+  color: #d9534f;
+  text-align: center;
+  font-size: 1.2em;
+  margin: 20px 0;
+}
 
-  /* Search Bar */
-  .search-bar {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 20px;
-    gap: 12px;
-  }
+/* Search Bar */
+.search-bar {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  gap: 12px;
+}
 
-  .search-bar input[type="text"] {
-    padding: 12px;
-    width: 60%;
-    border: 1px solid #ccc;
-    border-radius: 25px;
-    outline: none;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    transition: 0.3s ease-in-out;
-  }
+.search-bar input[type="text"] {
+  width: 100%;
+  max-width: 600px; /* Increased width of the search bar */
+  padding: 12px;
+  font-size: 1.1em;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
 
-  .tags-filter {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 20px;
-  }
+.search-bar input[type="text"]:focus {
+  border-color: #0073e6;
+}
 
-  .tags-filter button {
-    padding: 8px 15px;
-    border-radius: 25px;
-    border: 1px solid #ccc;
-    cursor: pointer;
-    transition: background-color 0.3s;
-  }
+.search-bar input[type="text"]::placeholder {
+  color: #888;
+}
 
-  .tags-filter button.selected {
-    background-color: #0073e6;
-    color: white;
-  }
+/* Tags Filter */
+.tags-filter {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+  gap: 15px;
+}
 
-  /* Data Grid Layout */
-  .data-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    justify-content: space-between;
-  }
+.tags-filter button {
+  padding: 12px 18px;
+  font-size: 1.1em;
+  border-radius: 5px;
+  background-color: #f1f1f1;
+  border: 1px solid #ddd;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.2s;
+}
 
-  /* Card Styles */
-  .data-card {
-    background: linear-gradient(145deg, #ffffff, #f1f1f1);
-    border-radius: 15px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-    padding: 20px;
-    transition: transform 0.3s, box-shadow 0.3s;
-    flex: 1 1 300px;
-    overflow: hidden;
-  }
+.tags-filter button:hover {
+  background-color: #f9f9f9;
+  transform: translateY(-2px);
+}
 
-  .data-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-  }
+.tags-filter button.selected {
+  background-color: #0073e6;
+  color: white;
+  transform: translateY(-2px);
+}
 
-  h2 {
-    font-size: 1.25em;
-    color: #333;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
+/* Data Grid */
+.data-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); /* Adjust columns */
+  gap: 25px;
+  margin-bottom: 20px;
+}
 
-  .icon {
-    font-size: 1.3em;
-  }
+.data-card {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s, box-shadow 0.3s ease;
+  height: auto; /* Allow cards to expand based on content */
+  display: flex;
+  flex-direction: column;
+}
 
-  p {
-    color: #555;
-    margin: 10px 0 15px;
-  }
+.data-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
 
-  /* Link Styles */
-  .view-link {
-    color: #0073e6;
-    text-decoration: none;
-    font-weight: bold;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-  }
+.data-card h2 {
+  font-size: 1.4em;
+  margin-bottom: 15px;
+  font-weight: 500;
+  color: #333;
+}
 
-  .view-link:hover {
-    color: #005bb5;
-  }
+.data-card .icon {
+  margin-right: 8px;
+}
 
-  /* Refresh Button (Top Right) */
-  .refresh-button {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background-color: #0073e6;
-    color: white;
-    padding: 12px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 1.5em;
-    transition: background-color 0.3s;
-  }
+.data-card p {
+  font-size: 1em;
+  margin-bottom: 15px;
+  color: #555;
+}
 
-  .refresh-button:hover {
-    background-color: #005bb5;
-  }
+.data-card .view-link {
+  color: #0073e6;
+  text-decoration: none;
+  font-weight: 600;
+}
 
-  /* Loading Spinner */
-  .loading-spinner {
-    text-align: center;
-    font-size: 1.5em;
-    color: #0073e6;
-  }
+.data-card .view-link:hover {
+  text-decoration: underline;
+}
+
+/* Spinner */
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2em;
+  color: #0073e6;
+  margin: 40px 0;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Refresh Button */
+.refresh-button {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px;
+  background-color: #0073e6;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 2em;
+  transition: background-color 0.3s ease, transform 0.2s;
+}
+
+.refresh-button:hover {
+  background-color: #005bb5;
+  transform: scale(1.1);
+}
 </style>
+

@@ -1,6 +1,7 @@
 import {
 	validateGetRequest,
 	validateRefreshRequest,
+	validateSearchRequest,
 } from '../middlewares/validater';
 import { Hono } from 'hono';
 import db from '../config/databases';
@@ -125,14 +126,14 @@ route.post('/', validateGetRequest, async c => {
 });
 
 // POST /notifications/search: Search notifications by tags and query with pagination
-route.post('/search', validateGetRequest, async c => {
+route.post('/search', validateSearchRequest, async c => {
 	try {
-		const { tags, limit, offset } = c.req.valid('json') as {
+		const { tags, limit, offset, search } = c.req.valid('json') as {
 			tags: string[];
 			limit: number;
 			offset: number;
+			search: string;
 		};
-		const searchTerm = c.req.query('query') || ''; // Fetching query parameter
 
 		// Validate tags
 		if (!validateTags(tags)) {
@@ -151,7 +152,7 @@ route.post('/search', validateGetRequest, async c => {
 		// Construct the search query based on tags and search term
 		const { queryText, params } = constructSearchQuery(
 			tags,
-			searchTerm,
+			search,
 			finalLimit,
 			finalOffset,
 		);

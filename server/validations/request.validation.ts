@@ -1,14 +1,13 @@
 import { z } from 'zod';
 
-const paginationSchema = z.object({
+export const paginationSchema = z.object({
+	tags: z.array(z.string()).min(1),
 	limit: z.number(),
 	offset: z.number(),
 });
 
-export const getRequestSchema = paginationSchema.extend({
-	tags: z
-		.array(z.string())
-		.min(1, 'filterTags must be a non-empty array of strings'),
+export const searchRequestSchema = paginationSchema.extend({
+	search: z.string(),
 });
 
 export const refreshRequestSchema = z.object({
