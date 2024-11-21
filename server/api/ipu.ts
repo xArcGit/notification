@@ -45,7 +45,6 @@ async function scrapeScheduleNotices(): Promise<ScheduleNotice[]> {
 	});
 
 	await browser.close();
-
 	return data;
 }
 
@@ -58,8 +57,5 @@ const updateScheduleNotices = async (): Promise<void> => {
 		logger.error('Error updating schedule notices:', error);
 	}
 };
-
-// Remove the automatic invocation of updateScheduleNotices
-// updateScheduleNotices();
 
 export { scrapeScheduleNotices, updateScheduleNotices };
